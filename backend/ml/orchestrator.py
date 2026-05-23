@@ -142,7 +142,6 @@ class TrainingOrchestrator:
             for name in (
                 AE_FILENAME,
                 RF_FILENAME,
-                IF_FILENAME,
                 SCALER_FILENAME,
                 THRESHOLD_FILENAME,
             ):
@@ -225,10 +224,10 @@ class TrainingOrchestrator:
             self._output_dir / RF_FILENAME,
         )
 
-        export_isolation_forest(
-            if_result["model"],
-            N_FEATURES,
-            self._output_dir / IF_FILENAME,
-        )
+        #export_isolation_forest(
+         #   if_result["model"],
+          #  N_FEATURES,
+           # self._output_dir / IF_FILENAME,
+        #)
 
         logger.info("Exported models to %s", self._output_dir)
