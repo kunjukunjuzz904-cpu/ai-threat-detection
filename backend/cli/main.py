@@ -162,16 +162,14 @@ def train(
             )
 
     if synthetic_normal > 0 or synthetic_attack > 0:
-        from ml.synthetic import generate_mixed_dataset
+        from ml.cicids_loader  import load_cicids
 
         typer.echo(
             f"Generating synthetic data:"
             f" {synthetic_normal} normal,"
             f" {synthetic_attack} attack"
         )
-        X_syn, y_syn = generate_mixed_dataset(
-            synthetic_normal, synthetic_attack
-        )
+        X_syn, y_syn = load_cicids()
         X_parts.append(X_syn)
         y_parts.append(y_syn)
 
