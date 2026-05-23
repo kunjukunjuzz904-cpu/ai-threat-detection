@@ -132,13 +132,10 @@ async def _retrain_from_db(
         labels.count(1),
     )
 
-    from ml.synthetic import generate_mixed_dataset
+    from ml.cicids_loader import load_cicids
 
     if len(vectors) < MIN_TRAINING_SAMPLES:
-        syn_X, syn_y = generate_mixed_dataset(
-            SYNTHETIC_SUPPLEMENT_NORMAL,
-            SYNTHETIC_SUPPLEMENT_ATTACK,
-        )
+        syn_X, syn_y = load_cicids()
         X = np.concatenate([
             np.array(vectors, dtype=np.float32),
             syn_X,
