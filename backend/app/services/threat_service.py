@@ -138,5 +138,6 @@ async def create_threat_event(
         model_version=scored.detection_mode,
     )
     session.add(event)
-    await session.flush()
+    await session.commit()
+    await session.refresh(event)
     return event
