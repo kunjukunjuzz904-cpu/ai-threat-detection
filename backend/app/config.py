@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     geoip_db_path: str = "/usr/share/GeoIP/GeoLite2-City.mmdb"
 
-    nginx_log_path: str = "/var/log/nginx/access.log"
+    nginx_log_path: str =  "data/sample-logs/access.log"
 
     raw_queue_size: int = 1000
     parsed_queue_size: int = 500
