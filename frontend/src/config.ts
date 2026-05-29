@@ -1,5 +1,5 @@
 // ===================
-// © AngelaMos | 2026
+// © ThreatShield AI | 2026
 // config.ts
 // ===================
 
@@ -39,7 +39,8 @@ export const QUERY_KEYS = {
 } as const
 
 export const ROUTES = {
-  DASHBOARD: '/',
+  LOGIN: '/login',
+  DASHBOARD : '/',
   THREATS: '/threats',
   MODELS: '/models',
 } as const
