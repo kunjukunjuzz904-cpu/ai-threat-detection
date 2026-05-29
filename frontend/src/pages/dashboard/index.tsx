@@ -93,10 +93,18 @@ function RankedList({
 }
 
 export function Component(): React.ReactElement {
+  if (!localStorage.getItem('auth')) {
+    window.location.href = '/login'
+  }
+  const handleLogout = (): void => {
+    localStorage.removeItem('auth')
+    window.location.href = '/login'
+  }
   const { data: stats, isLoading: statsLoading } = useStats()
   const { data: modelStatus } = useModelStatus()
   const { alerts, isConnected, connectionError } = useAlerts()
 
+  console.log(alerts)
   if (statsLoading || !stats) {
     return <div className={styles.loading}>Loading dashboard...</div>
   }
@@ -124,14 +132,21 @@ export function Component(): React.ReactElement {
     label,
     count,
   }))
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 5)
 
   return (
     <div className={styles.page}>
+       <div className={styles.topBar}>
+        <button className={styles.logoutButton} onClick={handleLogout}>
+          Logout
+        </button>
+       </div>
       <div className={styles.statRow}>
         <StatCard label="Threats Detected" value={totalThreats} />
         <StatCard label="Threats Stored" value={totalThreats} />
         <StatCard
-          label="High Severity"
+          label="high severity"
           value={high}
           sublabel={`of ${totalThreats} total`}
         />

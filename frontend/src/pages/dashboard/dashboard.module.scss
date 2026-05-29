@@ -1,5 +1,5 @@
 // ===================
-// © AngelaMos | 2026
+// © ThreatShield AI | 2026
 // dashboard.module.scss
 // ===================
 
@@ -180,4 +180,24 @@
   border-radius: $radius-md;
   font-size: $font-size-xs;
   color: $severity-high;
+}
+
+.topBar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.logoutButton {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #dc2626;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.logoutButton:hover {
+  opacity: 0.9;
 }
