@@ -1,0 +1,52 @@
+.page {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+}
+
+.card {
+  width: 360px;
+  padding: 32px;
+  border-radius: 16px;
+  background: #111827;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+}
+
+.title {
+  color: white;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #94a3b8;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: none;
+  border-radius: 8px;
+  background: #1e293b;
+  color: white;
+}
+
+.button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #dc2626;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.button:hover {
+  opacity: 0.9;
+}
