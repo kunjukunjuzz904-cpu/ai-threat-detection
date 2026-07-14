@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 ensemble.py
 """
 
@@ -11,17 +11,6 @@ def normalize_ae_score(error: float, threshold: float) -> float:
     if threshold <= 0:
         return 0.0
     return min(error / (threshold * 2), 1.0)
-
-
-def normalize_if_score(raw_score: float) -> float:
-    """
-    Normalize isolation forest score to [0, 1]
-
-    sklearn IF returns negative scores for anomalies,
-    positive for normal samples
-    """
-    return (1 - raw_score) / 2.0
-
 
 def fuse_scores(
     scores: dict[str, float],
