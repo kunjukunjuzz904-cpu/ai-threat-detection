@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 dispatcher.py
 """
 
@@ -25,9 +25,10 @@ class AlertDispatcher:
     Routes scored threat events to storage, pub/sub,
     and structured logging
 
-    MEDIUM+ severity events are persisted to PostgreSQL
-    and published to the Redis alerts channel for
-    WebSocket relay. All events are logged to stdout.
+    All scored requests are persisted to the database so
+    retraining and DB inspection have complete traffic history.
+    MEDIUM+ severity events are also published to the Redis
+    alerts channel for WebSocket relay.
     """
 
     def __init__(
@@ -55,18 +56,18 @@ class AlertDispatcher:
             scored.rule_result.matched_rules,
         )
 
+        await self._store_event(scored)
+
         if severity in ("HIGH", "MEDIUM"):
-            await self._store_event(scored)
             await self._publish_alert(scored, severity)
 
     async def _store_event(self, scored: ScoredRequest) -> None:
         """
         Persist the scored request as a threat event
-        in PostgreSQL
+        in the configured database
         """
         async with self._session_factory() as session:
             await create_threat_event(session, scored)
-            await session.commit()
 
     async def _publish_alert(
         self,
