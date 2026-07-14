@@ -46,7 +46,7 @@ class _ThresholdRule(NamedTuple):
 _PATTERN_RULES: list[_PatternRule] = [
     _PatternRule("LOG4SHELL", LOG4SHELL, 0.95),
     _PatternRule("COMMAND_INJECTION", COMMAND_INJECTION, 0.90),
-    _PatternRule("_INJECTION", SQLI, 0.85),
+    _PatternRule("SQL_INJECTION", SQLI, 0.85),
     _PatternRule("XSS", XSS, 0.80),
     _PatternRule("FILE_INCLUSION", FILE_INCLUSION, 0.75),
     _PatternRule("SSRF", SSRF, 0.70),
