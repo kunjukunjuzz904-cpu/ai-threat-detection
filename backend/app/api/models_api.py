@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 models_api.py
 """
 
@@ -9,7 +9,7 @@ import uuid
 from fastapi import APIRouter, BackgroundTasks, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
+from ml.metadata import MODEL_TYPES
 from app.config import settings
 from app.models.model_metadata import ModelMetadata
 from app.models.threat_event import ThreatEvent
@@ -27,23 +27,23 @@ SYNTHETIC_SUPPLEMENT_ATTACK = 250
 
 @router.get("/status")
 async def model_status(request: Request) -> dict[str, object]:
-    """
-    Return the status of active ML models
-    """
-    models_loaded = getattr(request.app.state, "models_loaded", True)
-    detection_mode = getattr(request.app.state, "detection_mode", "ml")
-
-    active_models: list[dict[str, object]] = []
-    session_factory = getattr(request.app.state, "session_factory", None)
-    if session_factory is not None:
-        async with session_factory() as session:
-            active_models = await _get_active_models(session)
-
-    return {
-        "models_loaded": len(active_models) > 0,
-        "detection_mode": "ml" if len(active_models) > 0 else "rules",
-        "active_models": active_models,
-    }
+    try:
+        models_loaded = getattr(request.app.state, "models_loaded", True)
+        detection_mode = getattr(request.app.state, "detection_mode", "deep_learning")
+        active_models = []
+        session_factory = getattr(request.app.state, "session_factory", None)
+        if session_factory is not None:
+            async with session_factory() as session:
+                active_models = await _get_active_models(session)
+        return {
+                "models_loaded": len(active_models) > 0,
+                "detection_mode": "deep_learning" if len(active_models) > 0 else "rules",
+                "active_models": active_models,
+            }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}
 
 
 @router.post("/retrain", status_code=202)
@@ -101,26 +101,31 @@ async def _retrain_from_db(
             return
 
         rows = (await session.execute(
-            select(ThreatEvent)
-        )).scalars().all()
+            select(
+                ThreatEvent.feature_vector,
+                ThreatEvent.reviewed,
+                ThreatEvent.review_label,
+                ThreatEvent.threat_score,
+            )
+        )).all()
 
     vectors: list[list[float]] = []
     labels: list[int] = []
 
-    for event in rows:
-        if not event.feature_vector:
+    for feature_vector, reviewed, review_label, threat_score in rows:
+        if not feature_vector:
             continue
 
-        if event.reviewed and event.review_label:
-            label = 1 if event.review_label == "true_positive" else 0
-        elif event.threat_score >= SCORE_ATTACK_THRESHOLD:
+        if reviewed and review_label:
+            label = 1 if review_label == "true_positive" else 0
+        elif threat_score >= SCORE_ATTACK_THRESHOLD:
             label = 1
-        elif event.threat_score < SCORE_NORMAL_CEILING:
+        elif threat_score < SCORE_NORMAL_CEILING:
             label = 0
         else:
             continue
 
-        vectors.append(event.feature_vector)
+        vectors.append(feature_vector)
         labels.append(label)
 
     logger.info(
@@ -133,9 +138,30 @@ async def _retrain_from_db(
     )
 
     from ml.cicids_loader import load_cicids
+    syn_X, syn_y = load_cicids()
+    expected_features = int(syn_X.shape[1])
+
+    filtered: list[tuple[list[float], int]] = []
+    skipped_bad_shape = 0
+    for vector, label in zip(vectors, labels, strict=False):
+        if len(vector) == expected_features:
+            filtered.append((vector, label))
+        else:
+            skipped_bad_shape += 1
+
+    if skipped_bad_shape:
+        logger.warning(
+            "Retrain job %s: skipped %d DB events with feature_vector "
+            "length != %d",
+            job_id,
+            skipped_bad_shape,
+            expected_features,
+        )
+
+    vectors = [vector for vector, _label in filtered]
+    labels = [label for _vector, label in filtered]
 
     if len(vectors) < MIN_TRAINING_SAMPLES:
-        syn_X, syn_y = load_cicids()
         X = np.concatenate([
             np.array(vectors, dtype=np.float32),
             syn_X,
@@ -169,14 +195,14 @@ async def _retrain_from_db(
     try:
         from cli.main import _write_metadata
 
-        metrics: dict[str, object] = (
-            dataclasses.asdict(result.ensemble_metrics)
-            if result.ensemble_metrics else {}
-        )
+        metrics_by_model ={
+            "autoencoder": result.ae_metrics,
+            "deep_neural_network": result.dnn_metrics,
+        }
         await _write_metadata(
             output_dir,
             len(X),
-            metrics,
+            metrics_by_model,
             result.mlflow_run_id,
             result.ae_metrics.get("ae_threshold"),
         )
@@ -217,14 +243,19 @@ async def _get_active_models(
     """
     Query all active model metadata records
     """
+    supported_model_types = list(MODEL_TYPES.values())
     query = select(ModelMetadata).where(
-        ModelMetadata.is_active == True  # type: ignore[arg-type]  # noqa: E712
-    )
+        ModelMetadata.is_active == True,
+        ModelMetadata.model_type.in_(supported_model_types),
+    ).order_by(ModelMetadata.model_type)
+
     rows = (await session.execute(query)).scalars().all()
+    print("ROWS:", rows)
+
     return [{
         "model_type": row.model_type,
         "version": row.version,
         "training_samples": row.training_samples,
         "metrics": row.metrics,
-        "threshold": row.threshold,
+        "threshold": row.threshold if row.model_type == "autoencoder" else None,
     } for row in rows]
