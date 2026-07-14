@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 model_metadata.py
 """
 
@@ -24,7 +24,7 @@ class ModelMetadata(TimestampedModel, table=True):
     model_type: str = Field(max_length=30)
     version: str = Field(max_length=64)
     training_samples: int
-    metrics: dict[str, object] = Field(sa_column=Column(JSON, nullable=False))
+    metrics: dict[str, dict[str, object]] = Field(sa_column=Column(JSON, nullable=False))
     artifact_path: str
     is_active: bool = Field(default=False)
     mlflow_run_id: str | None = Field(default=None, max_length=64)
