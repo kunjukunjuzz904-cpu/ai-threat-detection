@@ -3,7 +3,7 @@ ThreatShield AI | 2026
 model_metadata.py
 """
 
-from sqlalchemy import Column, Index, JSON, text
+from sqlalchemy import Column, Index, JSON
 from sqlmodel import Field
 
 from app.models.base import TimestampedModel
@@ -18,7 +18,6 @@ class ModelMetadata(TimestampedModel, table=True):
     __table_args__ = (Index(
         "idx_model_metadata_active",
         "model_type",
-        postgresql_where=text("is_active = TRUE"),
     ), )
 
     model_type: str = Field(max_length=30)
