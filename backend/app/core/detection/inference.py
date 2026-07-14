@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 inference.py
 """
 
@@ -18,15 +18,15 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 AE_FILENAME = "ae.onnx"
-RF_FILENAME = "rf.onnx"
-IF_FILENAME = "if.onnx"
+DNN_FILENAME = "dnn.onnx"
 SCALER_FILENAME = "scaler.json"
 THRESHOLD_FILENAME = "threshold.json"
+SCALER_CLIP_LIMIT = 10.0
 
 
 class InferenceEngine:
     """
-    ONNX-based inference engine for the 3-model ML ensemble.
+    ONNX-based inference engine for the 2-model Deep learning ensemble.
 
     Loads autoencoder, random forest, and isolation forest ONNX sessions
     from a model directory. Returns None for predictions when models
@@ -35,8 +35,7 @@ class InferenceEngine:
 
     def __init__(self, model_dir: str) -> None:
         self._ae_session: ort.InferenceSession | None = None
-        self._rf_session: ort.InferenceSession | None = None
-        self._if_session: ort.InferenceSession | None = None
+        self._dnn_session: ort.InferenceSession | None = None
         self._scaler_center: np.ndarray | None = None
         self._scaler_scale: np.ndarray | None = None
         self._threshold: float = 0.0
@@ -48,12 +47,11 @@ class InferenceEngine:
 
         model_path = Path(model_dir)
         ae_path = model_path / AE_FILENAME
-        rf_path = model_path / RF_FILENAME
-        if_path = model_path / IF_FILENAME
+        dnn_path = model_path / DNN_FILENAME
         scaler_path = model_path / SCALER_FILENAME
         threshold_path = model_path / THRESHOLD_FILENAME
 
-        required = [ae_path, rf_path, if_path, scaler_path, threshold_path]
+        required = [ae_path, dnn_path, scaler_path, threshold_path]
         if not all(p.exists() for p in required):
             return
 
@@ -63,20 +61,24 @@ class InferenceEngine:
             opts.intra_op_num_threads = 1
 
             self._ae_session = ort.InferenceSession(str(ae_path), opts)
-            self._rf_session = ort.InferenceSession(str(rf_path), opts)
-            self._if_session = ort.InferenceSession(str(if_path), opts)
+            self._dnn_session = ort.InferenceSession(str(dnn_path), opts)
 
             scaler_data = json.loads(scaler_path.read_text())
             self._scaler_center = np.array(scaler_data["center"],
                                            dtype=np.float32)
             self._scaler_scale = np.array(scaler_data["scale"],
                                           dtype=np.float32)
+            self._scaler_scale = np.where(
+                self._scaler_scale == 0,
+                1.0,
+                self._scaler_scale,
+            )
 
             threshold_data = json.loads(threshold_path.read_text())
             self._threshold = float(threshold_data["threshold"])
 
             self._loaded = True
-            logger.info("Loaded 3 ONNX models from %s", model_dir)
+            logger.info("Loaded Autoencoder + Deep Learning model from %s", model_dir)
         except Exception:
             logger.exception("Failed to load ONNX models from %s", model_dir)
 
@@ -109,18 +111,16 @@ class InferenceEngine:
             None, {"features": ae_input})[0]
         ae_errors = np.mean((ae_input - ae_reconstructed)**2, axis=1)
 
-        rf_result = self._rf_session.run(  # type: ignore[union-attr]
-            None, {"features": batch})
-        rf_proba = self._extract_rf_proba(rf_result[1])
+        dnn_output = self._dnn_session.run(
+            None, 
+            {"features": batch}
+        )[0].flatten()
 
-        if_scores_raw = self._if_session.run(  # type: ignore[union-attr]
-            None, {"features": batch})[1].flatten()
-
-        return {
+        result = {
             "ae": ae_errors.tolist(),
-            "rf": rf_proba.tolist(),
-            "if": if_scores_raw.tolist(),
+            "dnn": dnn_output.tolist(),
         }
+        return result  # type: ignore[union-attr]
 
     def _scale_for_ae(self, batch: np.ndarray) -> np.ndarray:
         """
@@ -128,27 +128,14 @@ class InferenceEngine:
         """
         if self._scaler_center is None or self._scaler_scale is None:
             return batch
-        return (batch - self._scaler_center) / self._scaler_scale  # type: ignore[no-any-return]
+        clean = np.nan_to_num(
+            batch.astype(np.float32, copy=False),
+            nan=0.0,
+            posinf=0.0,
+            neginf=0.0,
+        )
+        compressed = np.sign(clean) * np.log1p(np.abs(clean))
+        scaled = (compressed - self._scaler_center) / self._scaler_scale
+        return np.clip(scaled, -SCALER_CLIP_LIMIT, SCALER_CLIP_LIMIT).astype(np.float32)  # type: ignore[no-any-return]
 
-    @staticmethod
-    def _extract_rf_proba(
-            ort_output: list[Any] | np.ndarray
-    ) -> np.ndarray:
-        """
-        Extract attack probability from skl2onnx RF output format.
-
-        skl2onnx outputs a list of dicts [{0: p0, 1: p1}, ...] for
-        probability output.
-        """
-        if isinstance(ort_output, np.ndarray):
-            if ort_output.ndim == 2 and ort_output.shape[1] >= 2:
-                return ort_output[:, 1].astype(np.float32)
-            return ort_output.flatten().astype(np.float32)
-
-        proba = []
-        for row in ort_output:
-            if isinstance(row, dict):
-                proba.append(float(row.get(1, 0.0)))
-            else:
-                proba.append(float(row))
-        return np.array(proba, dtype=np.float32)
+    
