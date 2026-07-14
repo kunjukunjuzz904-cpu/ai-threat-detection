@@ -1,18 +1,30 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 aggregator.py
 """
 
 import hashlib
+import logging
 import math
 from collections import Counter
 
 import redis.asyncio as aioredis
 
+from app.core.features.mappings import WINDOWED_FEATURE_NAMES
+
 WINDOW_1M = 60
 WINDOW_5M = 300
 WINDOW_10M = 600
 KEY_TTL = 900
+
+logger = logging.getLogger(__name__)
+
+
+def _empty_windowed_features() -> dict[str, float]:
+    """
+    Return neutral windowed features when Redis is unavailable.
+    """
+    return {name: 0.0 for name in WINDOWED_FEATURE_NAMES}
 
 
 def _hash_member(value: str) -> str:
@@ -89,7 +101,13 @@ class WindowAggregator:
         for key in keys.values():
             pipe.expire(key, KEY_TTL)
 
-        results = await pipe.execute()
+        try:
+            results = await pipe.execute()
+        except Exception:
+            logger.exception(
+                "Redis window aggregation failed; using neutral window features"
+            )
+            return _empty_windowed_features()
 
         (
             _zadd_req, _zadd_paths, _zadd_statuses, _zadd_uas,
