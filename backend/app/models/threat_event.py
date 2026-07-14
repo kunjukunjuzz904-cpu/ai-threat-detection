@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 threat_event.py
 """
 
@@ -30,7 +30,6 @@ class ThreatEvent(TimestampedModel, table=True):
         Index(
             "idx_threat_events_reviewed",
             "reviewed",
-            postgresql_where=text("reviewed = FALSE"),
         ),
     )
 
