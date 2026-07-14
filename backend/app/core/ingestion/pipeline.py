@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 pipeline.py
 """
 
@@ -16,7 +16,6 @@ from app.core.detection.ensemble import (
     blend_scores,
     fuse_scores,
     normalize_ae_score,
-    normalize_if_score,
 )
 from app.core.detection.rules import RuleEngine, RuleResult
 from app.core.enrichment.geoip import GeoIPService, GeoResult
@@ -36,9 +35,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DEFAULT_ENSEMBLE_WEIGHTS: dict[str, float] = {
-    "ae": 0.40,
-    "rf": 0.40,
-    "if": 0.20,
+    "ae": 0.45,
+    "dnn": 0.55,
 }
 
 
@@ -85,7 +83,7 @@ class Pipeline:
         rule_engine: RuleEngine,
         geoip: GeoIPService | None = None,
         on_result: (Callable[[ScoredRequest], Awaitable[None]] | None) = None,
-        inference_engine = None,
+        inference_engine: InferenceEngine | None = None,
         ensemble_weights: dict[str, float] | None = None,
         raw_queue_size: int = 1000,
         parsed_queue_size: int = 500,
@@ -121,7 +119,7 @@ class Pipeline:
             asyncio.create_task(self._detection_worker(), name="detection"),
             asyncio.create_task(self._dispatch_worker(), name="dispatch"),
         ]
-        logger.info("Pipeline started — 4 stage workers running")
+        logger.info("Pipeline started â€” 4 stage workers running")
 
     async def stop(self) -> None:
         """
@@ -130,7 +128,7 @@ class Pipeline:
         """
         await self.raw_queue.put(None)
         await asyncio.gather(*self._tasks)
-        logger.info("Pipeline stopped — all workers exited")
+        logger.info("Pipeline stopped â€” all workers exited")
 
     async def _parse_worker(self) -> None:
         """
@@ -253,7 +251,7 @@ class Pipeline:
     def _score_with_ml(self,
                        feature_vector: list[float]) -> dict[str, float] | None:
         """
-        Run ML ensemble inference on a single feature vector
+        Run Autoencoder + DNN inference on a single feature vector
         and return normalized per-model scores
         """
         batch = np.array([feature_vector], dtype=np.float32)
@@ -267,10 +265,8 @@ class Pipeline:
                 raw["ae"][0],
                 self._inference_engine.threshold,  # type: ignore[union-attr]
             ),
-            "rf":
-            raw["rf"][0],
-            "if":
-            normalize_if_score(raw["if"][0]),
+            "dnn":
+            raw["dnn"][0],
         }
 
     async def _dispatch_worker(self) -> None:
@@ -292,3 +288,4 @@ class Pipeline:
                     scored.entry.ip,
                 )
             self._alert_queue.task_done()
+
