@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_metadata.py
 """
 
@@ -50,8 +50,7 @@ def model_artifacts(tmp_path: Path) -> Path:
     Create fake ONNX model files for version hashing
     """
     (tmp_path / "ae.onnx").write_bytes(b"ae-model-data-123")
-    (tmp_path / "rf.onnx").write_bytes(b"rf-model-data-456")
-    (tmp_path / "if.onnx").write_bytes(b"if-model-data-789")
+    (tmp_path / "dnn.onnx").write_bytes(b"dnn-model-data-456")
     (tmp_path / "scaler.json").write_text(
         json.dumps({
             "center": [0.0],
@@ -90,9 +89,8 @@ class TestComputeModelVersion:
         Different files produce different version strings
         """
         v_ae = compute_model_version(model_artifacts / "ae.onnx")
-        v_rf = compute_model_version(model_artifacts / "rf.onnx")
-
-        assert v_ae != v_rf
+        v_dnn = compute_model_version(model_artifacts / "dnn.onnx")
+        assert v_ae != v_dnn
 
 
 class TestSaveModelMetadata:
@@ -107,7 +105,7 @@ class TestSaveModelMetadata:
         model_artifacts: Path,
     ) -> None:
         """
-        save_model_metadata creates one row per model type
+        save_model_metadata creates one row for Autoencoder and DNN
         """
         rows = await save_model_metadata(
             db_session,
@@ -119,7 +117,7 @@ class TestSaveModelMetadata:
             },
         )
 
-        assert len(rows) == 3
+        assert len(rows) == 2
 
     @pytest.mark.asyncio
     async def test_all_rows_active(
@@ -146,7 +144,7 @@ class TestSaveModelMetadata:
         model_artifacts: Path,
     ) -> None:
         """
-        Row model types are autoencoder, random_forest, isolation_forest
+        Row model types are , random_forest, isolation_forest
         """
         rows = await save_model_metadata(
             db_session,
@@ -158,8 +156,7 @@ class TestSaveModelMetadata:
 
         assert types == {
             "autoencoder",
-            "random_forest",
-            "isolation_forest",
+            "deep_neural_network",
         }
 
     @pytest.mark.asyncio
@@ -190,7 +187,7 @@ class TestSaveModelMetadata:
         all_rows = result.scalars().all()
         active_rows = [r for r in all_rows if r.is_active]
 
-        assert len(active_rows) == 3
+        assert len(active_rows) == 2
         assert all(r.training_samples == 600 for r in active_rows)
 
     @pytest.mark.asyncio
@@ -221,6 +218,6 @@ class TestSaveModelMetadata:
         all_rows = result.scalars().all()
         inactive = [r for r in all_rows if not r.is_active]
 
-        assert len(all_rows) == 6
-        assert len(inactive) == 3
+        assert len(all_rows) == 4
+        assert len(inactive) == 2
         assert all(r.training_samples == 500 for r in inactive)
