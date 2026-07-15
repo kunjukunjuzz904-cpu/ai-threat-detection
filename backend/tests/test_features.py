@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_features.py
 
 Tests per-request feature extraction, Redis sliding-window aggregation, and feature encoding.
