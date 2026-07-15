@@ -1,6 +1,6 @@
 """
 ThreatShield AI | 2026
-train_classifiers.py
+train_dnn.py
 """
 
 from typing import Any
