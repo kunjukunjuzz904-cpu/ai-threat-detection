@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_parsers.py
 
 Tests nginx combined log line parsing via parse_combined.
