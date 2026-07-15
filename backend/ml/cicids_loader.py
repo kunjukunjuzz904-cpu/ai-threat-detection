@@ -19,7 +19,8 @@ def load_cicids():
         frames.append(df)
 
     data = pd.concat(frames, ignore_index=True)
-    data = data.sample(100000, random_state=42)
+    if len(data) > 500000:
+        data = data.sample(500000, random_state=42)
 
     data.columns = data.columns.str.strip()
 
