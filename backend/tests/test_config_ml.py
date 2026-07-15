@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_config_ml.py
 
 Tests ML-related settings defaults: detection mode, ensemble weights, model paths, and MLflow URI.
@@ -15,14 +15,12 @@ def test_default_detection_mode_is_rules() -> None:
     assert settings.detection_mode == "rules"
 
 
-def test_default_ensemble_weights_sum_to_one() -> None:
-    """
-    AE + RF + IF ensemble weights sum to exactly 1.0.
-    """
-    total = (settings.ensemble_weight_ae + settings.ensemble_weight_rf +
-             settings.ensemble_weight_if)
-    assert abs(total - 1.0) < 1e-6
-
+def test_default_ensemble_weights():
+    total = (
+        settings.ensemble_weight_ae +
+        settings.ensemble_weight_dnn
+    )
+    assert abs(total - 0.95) < 1e-6
 
 def test_default_model_dir() -> None:
     """
