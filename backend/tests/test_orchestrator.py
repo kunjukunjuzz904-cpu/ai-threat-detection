@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_orchestrator.py
 """
 
@@ -13,8 +13,7 @@ from ml.orchestrator import TrainingOrchestrator, TrainingResult
 N_FEATURES = 35
 EXPECTED_FILES = [
     "ae.onnx",
-    "rf.onnx",
-    "if.onnx",
+    "dnn.onnx",
     "scaler.json",
     "threshold.json",
 ]
@@ -92,8 +91,8 @@ class TestTrainingOrchestrator:
         result = orch.run(X, y)
 
         assert "ae_threshold" in result.ae_metrics
-        assert "f1" in result.rf_metrics
-        assert "n_samples" in result.if_metrics
+        assert "accuracy" in result.dnn_metrics
+        assert "f1" in result.dnn_metrics
 
     def test_ensemble_metrics_present(self, tmp_path: Path) -> None:
         """
