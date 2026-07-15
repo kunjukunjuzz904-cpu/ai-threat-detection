@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_ml_integration.py
 """
 
@@ -9,10 +9,6 @@ from pathlib import Path
 import fakeredis.aioredis
 import numpy as np
 import pytest
-from sklearn.ensemble import (
-    IsolationForest,
-    RandomForestClassifier,
-)
 
 from app.core.detection.inference import InferenceEngine
 from app.core.detection.rules import RuleEngine
@@ -21,11 +17,8 @@ from app.core.ingestion.pipeline import (
     ScoredRequest,
 )
 from ml.autoencoder import ThreatAutoencoder
-from ml.export_onnx import (
-    export_autoencoder,
-    export_isolation_forest,
-    export_random_forest,
-)
+from ml.export_onnx import export_autoencoder
+   
 from ml.scaler import FeatureScaler
 
 VALID_LINE = ("93.184.216.34 - - [11/Feb/2026:14:30:00 +0000] "
@@ -50,14 +43,6 @@ def trained_model_dir(tmp_path: Path) -> Path:
 
     ae = ThreatAutoencoder(input_dim=35)
     export_autoencoder(ae, tmp_path / "ae.onnx")
-
-    rf = RandomForestClassifier(n_estimators=10, random_state=42)
-    rf.fit(X, y)
-    export_random_forest(rf, 35, tmp_path / "rf.onnx")
-
-    iso = IsolationForest(n_estimators=10, random_state=42)
-    iso.fit(X[:140])
-    export_isolation_forest(iso, 35, tmp_path / "if.onnx")
 
     scaler = FeatureScaler()
     scaler.fit(X[:140])
