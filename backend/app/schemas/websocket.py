@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 websocket.py
 """
 
@@ -20,5 +20,5 @@ class WebSocketAlert(BaseModel):
     request_method: str
     request_path: str
     threat_score: float
-    severity: str
+    severity: Literal["HIGH", "MEDIUM", "LOW"]
     component_scores: dict[str, float]
