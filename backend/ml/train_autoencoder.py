@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 train_autoencoder.py
 """
 
@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
 
 from ml.autoencoder import ThreatAutoencoder
 from ml.scaler import FeatureScaler
@@ -29,8 +30,12 @@ def train_autoencoder(
     input_dim = X_normal.shape[1]
 
     split_idx = int(len(X_normal) * (1 - val_split))
-    X_train_raw = X_normal[:split_idx]
-    X_val_raw = X_normal[split_idx:]
+    X_train_raw, X_val_raw = train_test_split(
+        X_normal,
+        test_size=val_split,
+        random_state=42,
+        shuffle=True,
+    )
 
     scaler = FeatureScaler()
     X_train_scaled = scaler.fit_transform(X_train_raw)
