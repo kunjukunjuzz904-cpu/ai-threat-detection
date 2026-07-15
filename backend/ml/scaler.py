@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 scaler.py
 """
 
@@ -9,13 +9,15 @@ from pathlib import Path
 import numpy as np
 from sklearn.preprocessing import RobustScaler
 
+CLIP_LIMIT = 10.0
+
 
 class FeatureScaler:
     """
     IQR-based feature scaler persisted as JSON (not pickle).
 
     Wraps sklearn RobustScaler for outlier-robust normalization.
-    Used only for autoencoder input — tree models are scale-invariant.
+    Used for preprocessing Autoencoder input features.
     """
 
     def __init__(self) -> None:
@@ -36,7 +38,7 @@ class FeatureScaler:
         Fit the scaler on training data.
         """
         self._scaler = RobustScaler()
-        self._scaler.fit(X)
+        self._scaler.fit(self._preprocess(X))
         self._fitted = True
         return self
 
@@ -46,7 +48,8 @@ class FeatureScaler:
         """
         if not self._fitted or self._scaler is None:
             raise RuntimeError("Scaler has not been fitted")
-        return self._scaler.transform(X).astype(np.float32)  # type: ignore[no-any-return]
+        scaled = self._scaler.transform(self._preprocess(X))
+        return np.clip(scaled, -CLIP_LIMIT, CLIP_LIMIT).astype(np.float32)  # type: ignore[no-any-return]
 
     def inverse_transform(self, X: np.ndarray) -> np.ndarray:
         """
@@ -73,6 +76,8 @@ class FeatureScaler:
             "center": self._scaler.center_.tolist(),
             "scale": self._scaler.scale_.tolist(),
             "n_features": int(self._scaler.n_features_in_),
+            "preprocess": "signed_log1p_clip",
+            "clip_limit": CLIP_LIMIT,
         }
         Path(path).write_text(json.dumps(data, indent=2), encoding="utf-8")
 
@@ -89,3 +94,16 @@ class FeatureScaler:
         scaler._scaler.n_features_in_ = data["n_features"]
         scaler._fitted = True
         return scaler
+
+    @staticmethod
+    def _preprocess(X: np.ndarray) -> np.ndarray:
+        """
+        Compress high-magnitude traffic counters before robust scaling.
+        """
+        clean = np.nan_to_num(
+            X.astype(np.float64, copy=False),
+            nan=0.0,
+            posinf=0.0,
+            neginf=0.0,
+        )
+        return np.sign(clean) * np.log1p(np.abs(clean))
