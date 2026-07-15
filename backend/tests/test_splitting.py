@@ -1,179 +1,152 @@
 """
 ThreatShield AI | 2026
-test_synthetic.py
+test_splitting.py
 """
 
 import numpy as np
+import pytest
 
-from app.core.features.encoder import encode_for_inference
-from app.core.features.extractor import extract_request_features
-from app.core.features.mappings import WINDOWED_FEATURE_NAMES
-from app.core.ingestion.parsers import ParsedLogEntry
-from ml.synthetic import (
-    generate_log4shell_requests,
-    generate_mixed_dataset,
-    generate_normal_requests,
-    generate_scanner_requests,
-    generate_sqli_requests,
-    generate_ssrf_requests,
-    generate_traversal_requests,
-    generate_xss_requests,
-)
+from ml.splitting import TrainingSplit, prepare_training_data
 
-class TestGenerators:
+N_NORMAL = 160
+N_ATTACK = 40
+N_FEATURES = 35
+TOTAL = N_NORMAL + N_ATTACK
+
+
+def _make_dataset(
+    n_normal: int = N_NORMAL,
+    n_attack: int = N_ATTACK,
+    n_features: int = N_FEATURES,
+) -> tuple[np.ndarray, np.ndarray]:
     """
-    Test individual attack and normal traffic generators
+    Generate synthetic imbalanced dataset
     """
-
-    def test_sqli_returns_correct_count(self, ) -> None:
-        """
-        generate_sqli_requests returns the requested count
-        """
-        results = generate_sqli_requests(10)
-        assert len(results) == 10
-
-    def test_xss_returns_correct_count(self, ) -> None:
-        """
-        generate_xss_requests returns the requested count
-        """
-        results = generate_xss_requests(10)
-        assert len(results) == 10
-
-    def test_traversal_returns_correct_count(self, ) -> None:
-        """
-        generate_traversal_requests returns the requested count
-        """
-        results = generate_traversal_requests(10)
-        assert len(results) == 10
-
-    def test_log4shell_returns_correct_count(self, ) -> None:
-        """
-        generate_log4shell_requests returns the requested count
-        """
-        results = generate_log4shell_requests(10)
-        assert len(results) == 10
-
-    def test_ssrf_returns_correct_count(self, ) -> None:
-        """
-        generate_ssrf_requests returns the requested count
-        """
-        results = generate_ssrf_requests(10)
-        assert len(results) == 10
-
-    def test_scanner_returns_correct_count(self, ) -> None:
-        """
-        generate_scanner_requests returns the requested count
-        """
-        results = generate_scanner_requests(10)
-        assert len(results) == 10
-
-    def test_normal_returns_correct_count(self, ) -> None:
-        """
-        generate_normal_requests returns the requested count
-        """
-        results = generate_normal_requests(20)
-        assert len(results) == 20
-
-    def test_sqli_has_attack_payloads(self, ) -> None:
-        """
-        SQLi entries contain injection patterns in query string
-        """
-        results = generate_sqli_requests(20)
-        has_sqli = any("OR" in e.query_string or "UNION" in e.query_string
-                       or "DROP" in e.query_string or "SLEEP" in e.query_string
-                       for e in results)
-        assert has_sqli
-
-    def test_xss_has_script_patterns(self, ) -> None:
-        """
-        XSS entries contain script-related patterns
-        """
-        results = generate_xss_requests(20)
-        has_xss = any(
-            "script" in e.query_string.lower() or "alert" in
-            e.query_string.lower() or "onerror" in e.query_string.lower()
-            for e in results)
-        assert has_xss
-
-    def test_traversal_has_dotdot(self) -> None:
-        """
-        Traversal entries contain ../ in path
-        """
-        results = generate_traversal_requests(20)
-        has_traversal = any(".." in e.path or "%2e" in e.path.lower()
-                            for e in results)
-        assert has_traversal
-
-    def test_all_entries_are_parsed_log_entry(self, ) -> None:
-        """
-        All generators return ParsedLogEntry instances
-        """
-        generators = [
-            generate_sqli_requests,
-            generate_xss_requests,
-            generate_traversal_requests,
-            generate_log4shell_requests,
-            generate_ssrf_requests,
-            generate_scanner_requests,
-            generate_normal_requests,
-        ]
-        for gen in generators:
-            results = gen(5)
-            assert all(isinstance(e, ParsedLogEntry) for e in results)
-
-    def test_entries_pass_feature_extraction(self, ) -> None:
-        """
-        All generated entries extract and encode without error
-        """
-        generators = [
-            generate_sqli_requests,
-            generate_xss_requests,
-            generate_traversal_requests,
-            generate_log4shell_requests,
-            generate_ssrf_requests,
-            generate_scanner_requests,
-            generate_normal_requests,
-        ]
-        for gen in generators:
-            for entry in gen(5):
-                features = extract_request_features(entry)
-                for name in WINDOWED_FEATURE_NAMES:
-                    features[name] = 0.0
-                vector = encode_for_inference(features)
-                assert len(vector) == 35
+    rng = np.random.default_rng(42)
+    X = rng.standard_normal(
+        (n_normal + n_attack, n_features)).astype(np.float32)
+    y = np.array(
+        [0] * n_normal + [1] * n_attack,
+        dtype=np.int32,
+    )
+    return X, y
 
 
-class TestMixedDataset:
+class TestPrepareTrainingData:
     """
-    Test end-to-end mixed dataset generation
+    Tests for stratified splitting with SMOTE
     """
 
-    def test_returns_correct_shape(self) -> None:
+    def test_returns_training_split(self) -> None:
         """
-        generate_mixed_dataset returns X with 35 columns
+        Returns a TrainingSplit dataclass
         """
-        X, y = generate_mixed_dataset(100, 60)
-        assert X.shape == (160, 35)
+        X, y = _make_dataset()
+        result = prepare_training_data(X, y)
+        assert isinstance(result, TrainingSplit)
 
-    def test_contains_both_labels(self) -> None:
+    def test_split_proportions(self) -> None:
         """
-        y array contains both 0 and 1
+        Validates 70/15/15 split proportions
         """
-        _, y = generate_mixed_dataset(100, 60)
-        assert 0 in y
-        assert 1 in y
+        X, y = _make_dataset()
+        result = prepare_training_data(X, y)
+        expected_val = int(TOTAL * 0.15)
+        expected_test = int(TOTAL * 0.15)
+        tolerance = int(TOTAL * 0.05)
+        assert abs(result.X_val.shape[0] - expected_val) <= tolerance
+        assert abs(result.X_test.shape[0] - expected_test) <= tolerance
 
-    def test_label_counts_match(self) -> None:
+    def test_stratified_class_distribution(self, ) -> None:
         """
-        Label counts match requested normal and attack counts
+        Splits preserve the original class ratio
         """
-        _, y = generate_mixed_dataset(100, 60)
-        assert np.sum(y == 0) == 100
-        assert np.sum(y == 1) == 60
+        X, y = _make_dataset()
+        original_ratio = np.mean(y == 1)
+        result = prepare_training_data(X, y)
+        val_ratio = np.mean(result.y_val == 1)
+        test_ratio = np.mean(result.y_test == 1)
+        ratio_tol = 0.10
+        assert abs(val_ratio - original_ratio) < ratio_tol
+        assert abs(test_ratio - original_ratio) < ratio_tol
 
-    def test_values_are_finite(self) -> None:
+    def test_smote_increases_minority(self) -> None:
         """
-        All feature values are finite
+        SMOTE brings minority ratio near strategy
         """
-        X, _ = generate_mixed_dataset(50, 30)
-        assert np.all(np.isfinite(X))
+        X, y = _make_dataset()
+        result = prepare_training_data(
+            X,
+            y,
+            smote_strategy=0.3,
+        )
+        minority = np.sum(result.y_train == 1)
+        majority = np.sum(result.y_train == 0)
+        ratio = minority / majority
+        assert ratio >= 0.25
+
+    def test_val_test_untouched(self) -> None:
+        """
+        Val test sizes match pre-SMOTE counts
+        """
+        X, y = _make_dataset()
+        result = prepare_training_data(X, y)
+        remainder = TOTAL - int(TOTAL * 0.70)
+        half = remainder // 2
+        tol = 3
+        assert abs(result.X_val.shape[0] - half) <= tol
+        assert abs(result.X_test.shape[0] - half) <= tol
+        assert (result.X_val.shape[0] == result.y_val.shape[0])
+        assert (result.X_test.shape[0] == result.y_test.shape[0])
+
+    def test_x_normal_train_only_normals(self, ) -> None:
+        """
+        X_normal_train has only class-0 rows
+        """
+        X, y = _make_dataset()
+        result = prepare_training_data(X, y)
+        expected = int(N_NORMAL * 0.70)
+        tol = int(TOTAL * 0.05)
+        assert abs(result.X_normal_train.shape[0] - expected) <= tol
+        assert (result.X_normal_train.shape[1] == N_FEATURES)
+
+    def test_small_dataset_works(self) -> None:
+        """
+        Small 50-sample dataset succeeds
+        """
+        X, y = _make_dataset(
+            n_normal=40,
+            n_attack=10,
+            n_features=N_FEATURES,
+        )
+        result = prepare_training_data(X, y, smote_k=3)
+        assert isinstance(result, TrainingSplit)
+        assert result.X_train.shape[0] > 0
+        assert result.X_val.shape[0] > 0
+        assert result.X_test.shape[0] > 0
+
+    def test_all_one_class_raises_value_error(self, ) -> None:
+        """
+        Single-class labels raise ValueError
+        """
+        rng = np.random.default_rng(99)
+        X = rng.standard_normal((100, N_FEATURES)).astype(np.float32)
+        y_zeros = np.zeros(100, dtype=np.int32)
+        with pytest.raises(ValueError):
+            prepare_training_data(X, y_zeros)
+        y_ones = np.ones(100, dtype=np.int32)
+        with pytest.raises(ValueError):
+            prepare_training_data(X, y_ones)
+
+    def test_smote_skipped_minority_too_small(self, ) -> None:
+        """
+        Tiny minority skips SMOTE gracefully
+        """
+        X, y = _make_dataset(
+            n_normal=90,
+            n_attack=10,
+            n_features=N_FEATURES,
+        )
+        result = prepare_training_data(X, y, smote_k=50)
+        assert isinstance(result, TrainingSplit)
+        assert result.X_train.shape[0] > 0
