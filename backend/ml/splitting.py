@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 splitting.py
 """
 
@@ -50,10 +50,12 @@ def prepare_training_data(
         random_state=random_state,
     )
 
+    remaining = 1.0 - train_ratio
+    val_fraction = val_ratio / remaining
     X_val, X_test, y_val, y_test = train_test_split(
         X_rem,
         y_rem,
-        test_size=0.5,
+        test_size=1 - val_fraction,
         stratify=y_rem,
         random_state=random_state,
     )
