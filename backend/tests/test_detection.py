@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_detection.py
 
 Tests the rule engine's threat scoring, severity classification, and attack pattern matching.
