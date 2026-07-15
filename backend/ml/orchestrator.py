@@ -14,7 +14,7 @@ import numpy as np
 from ml.export_onnx import export_autoencoder, export_dnn
 from ml.splitting import prepare_training_data
 from ml.train_autoencoder import train_autoencoder
-from ml.train_classifiers import train_neural_network
+from ml.train_dnn import train_neural_network
 from ml.validation import ValidationResult, validate_ensemble
 
 logger = logging.getLogger(__name__)
