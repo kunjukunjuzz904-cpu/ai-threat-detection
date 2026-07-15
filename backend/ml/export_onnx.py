@@ -1,19 +1,15 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 export_onnx.py
 """
 
 from pathlib import Path
 
 import torch
-from skl2onnx import convert_sklearn
-from skl2onnx.common.data_types import FloatTensorType
-from sklearn.base import BaseEstimator
-
 from ml.autoencoder import ThreatAutoencoder
+from ml.dnn import ThreatDNN
 
 ONNX_OPSET = 17
-SKL_TARGET_OPSET = {"": 17, "ai.onnx.ml": 3}
 
 
 def export_autoencoder(
@@ -22,7 +18,7 @@ def export_autoencoder(
     opset: int = ONNX_OPSET,
 ) -> Path:
     """
-    Export a PyTorch autoencoder to ONNX with dynamic batch dimension
+    Export a PyTorch autoencoder to ONNX with dynamic batch dimension.
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -30,61 +26,59 @@ def export_autoencoder(
     model.eval()
     dummy = torch.randn(1, model.input_dim)
 
-    batch_dim = torch.export.Dim("batch_size", min=1)
-
     torch.onnx.export(
         model,
-        dummy,  # type: ignore[arg-type]
+        dummy,
         str(path),
         opset_version=opset,
+        dynamo=False,
+        external_data=False,
         export_params=True,
         do_constant_folding=True,
         input_names=["features"],
         output_names=["reconstructed"],
-        dynamic_shapes={"x": {
-            0: batch_dim
-        }},
+        dynamic_axes={
+            "features": {0: "batch_size"},
+            "reconstructed": {0: "batch_size"},
+        },
     )
     return path
 
 
-def export_random_forest(
-    model: BaseEstimator,
-    n_features: int,
+def export_dnn(
+    model: ThreatDNN,
     path: Path | str,
+    input_dim: int | None = None,
+    opset: int = ONNX_OPSET,
 ) -> Path:
     """
-    Export a sklearn random forest (or calibrated wrapper) to ONNX
+    Export a PyTorch deep neural network classifier to ONNX.
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    initial_type = [("features", FloatTensorType([None, n_features]))]
-    onnx_model = convert_sklearn(
+    model.eval()
+    n_features = input_dim or model.input_dim
+    dummy = torch.randn(1, n_features)
+
+    torch.onnx.export(
         model,
-        initial_types=initial_type,
-        target_opset=SKL_TARGET_OPSET,
+        dummy,
+        str(path),
+        export_params=True,
+        opset_version=opset,
+        dynamo=False,
+        external_data=False,
+        do_constant_folding=True,
+        input_names=["features"],
+        output_names=["prediction"],
+        dynamic_axes={
+            "features": {0: "batch_size"},
+            "prediction": {0: "batch_size"},
+        },
     )
-    path.write_bytes(onnx_model.SerializeToString())
     return path
 
 
-def export_isolation_forest(
-    model: BaseEstimator,
-    n_features: int,
-    path: Path | str,
-) -> Path:
-    """
-    Export a sklearn isolation forest to ONNX
-    """
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    initial_type = [("features", FloatTensorType([None, n_features]))]
-    onnx_model = convert_sklearn(
-        model,
-        initial_types=initial_type,
-        target_opset=SKL_TARGET_OPSET,
-    )
-    path.write_bytes(onnx_model.SerializeToString())
-    return path
+export_classifier = export_dnn
+export_neural_network = export_dnn
