@@ -1,10 +1,11 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 threat_service.py
 """
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,7 +53,7 @@ async def get_threats(
     session: AsyncSession,
     limit: int = 50,
     offset: int = 0,
-    severity: str | None = None,
+    severity: Literal["HIGH", "MEDIUM", "LOW"] | None = None,
     source_ip: str | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
