@@ -1,6 +1,6 @@
 
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 __main__.py
 """
 
@@ -11,13 +11,15 @@ from app.config import settings
 
 def main() -> None:
     """
-    Run the AngelusVigil API server
+    Run the ThreatShield AI API server
     """
     uvicorn.run(
         "app.main:app",
         host=settings.host,
         port=settings.port,
         reload=settings.debug,
+        access_log=True,
+        log_config=None,
     )
 
 
