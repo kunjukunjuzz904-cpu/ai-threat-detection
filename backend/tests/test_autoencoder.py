@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_autoencoder.py
 
 Tests the ThreatAutoencoder architecture: shapes, output range, reconstruction error, and training behavior.
