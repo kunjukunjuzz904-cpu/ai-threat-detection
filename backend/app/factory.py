@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 factory.py
 """
 
@@ -8,10 +8,11 @@ import logging
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 
@@ -31,6 +32,69 @@ if TYPE_CHECKING:
     from app.core.detection.inference import InferenceEngine
 
 logger = logging.getLogger(__name__)
+Path("data/sample-logs").mkdir(parents=True, exist_ok=True)
+access_logger = logging.getLogger("access_logger")
+if not access_logger.handlers:
+    handler = logging.FileHandler("data/sample-logs/access.log")
+    formatter = logging.Formatter("%(message)s")
+    handler.setFormatter(formatter)
+
+    access_logger.addHandler(handler)
+    access_logger.setLevel(logging.INFO)
+
+
+INTERNAL_PATH_PREFIXES = (
+    "/auth",
+    "/docs",
+    "/health",
+    "/ingest",
+    "/models",
+    "/openapi.json",
+    "/ready",
+    "/stats",
+    "/threats",
+    "/ws",
+)
+
+
+def _should_capture_request(path: str) -> bool:
+    """
+    Capture only traffic meant to be inspected, not dashboard/API polling.
+    """
+    return not any(path == prefix or path.startswith(f"{prefix}/")
+                   for prefix in INTERNAL_PATH_PREFIXES)
+
+
+def _quote_log_value(value: str) -> str:
+    """
+    Keep generated access-log lines parseable as nginx combined logs.
+    """
+    return value.replace("\\", "\\\\").replace('"', r"\"")
+
+
+def _combined_log_line(
+    request: Request,
+    status_code: int,
+    response_size: int,
+) -> str:
+    """
+    Build an nginx combined-format log line for the ingestion pipeline.
+    """
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    timestamp = datetime.now(timezone.utc).astimezone().strftime(
+        "%d/%b/%Y:%H:%M:%S %z")
+    uri = request.url.path
+    if request.url.query:
+        uri = f"{uri}?{request.url.query}"
+    referer = request.headers.get("referer") or "-"
+    user_agent = request.headers.get("user-agent") or "-"
+    return (
+        f'{client_ip} - - [{timestamp}] '
+        f'"{request.method} {_quote_log_value(uri)} HTTP/1.1" '
+        f'{status_code} {response_size} '
+        f'"{_quote_log_value(referer)}" '
+        f'"{_quote_log_value(user_agent)}"'
+    )
 
 
 @asynccontextmanager
@@ -53,7 +117,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await conn.run_sync(SQLModel.metadata.create_all)
     logger.info("Database tables verified")
 
+    print("REDIS URL:", settings.redis_url)
+
     await redis_manager.connect()
+
+    print("REDIS PING:", await redis_manager.ping())
 
     geoip = GeoIPService(settings.geoip_db_path)
 
@@ -67,7 +135,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     inference_engine = _load_inference_engine()
     app.state.models_loaded = inference_engine is not None and inference_engine.is_loaded
-    app.state.detection_mode = "hybrid" if app.state.models_loaded else "rules"
+    app.state.detection_mode = (
+    "deep_learning"
+    if app.state.models_loaded
+    else "rules"
+)
 
     pipeline = Pipeline(
         redis_client=redis_client,
@@ -77,8 +149,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         inference_engine=inference_engine,
         ensemble_weights={
             "ae": settings.ensemble_weight_ae,
-            "rf": settings.ensemble_weight_rf,
-            "if": settings.ensemble_weight_if,
+            "dnn": settings.ensemble_weight_dnn,
         },
         raw_queue_size=settings.raw_queue_size,
         parsed_queue_size=settings.parsed_queue_size,
@@ -101,7 +172,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.geoip = geoip
     app.state.pipeline_running = True
 
-    logger.info("AngelusVigil started — pipeline active")
+    logger.info("ThreatShield AI started — pipeline active")
 
     yield
 
@@ -113,7 +184,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await redis_manager.disconnect()
     await engine.dispose()
 
-    logger.info("AngelusVigil shut down cleanly")
+    logger.info("ThreatShield AI shut down cleanly")
 
 
 def _load_inference_engine():
@@ -147,7 +218,7 @@ def _load_inference_engine():
 
 def create_app() -> FastAPI:
     """
-    Build and configure the AngelusVigil FastAPI application.
+    Build and configure the ThreatShield AI FastAPI application.
     """
     
     app = FastAPI(
@@ -167,6 +238,31 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def capture_http_traffic(request: Request, call_next):
+        """
+        Feed external-looking HTTP requests into the detection pipeline.
+        """
+        response = await call_next(request)
+        if _should_capture_request(request.url.path):
+            content_length = response.headers.get("content-length")
+            response_size = int(content_length) if content_length else 0
+            line = _combined_log_line(
+                request,
+                response.status_code,
+                response_size,
+            )
+            access_logger.info(line)
+
+            pipeline = getattr(request.app.state, "pipeline", None)
+            if pipeline is not None:
+                try:
+                    pipeline.raw_queue.put_nowait(line)
+                except asyncio.QueueFull:
+                    logger.warning(
+                        "Pipeline raw queue full; dropping access log line")
+        return response
+
     app.state.startup_time = time.monotonic()
     app.state.pipeline_running = False
 
@@ -176,7 +272,9 @@ def create_app() -> FastAPI:
     from app.api.stats import router as stats_router
     from app.api.threats import router as threats_router
     from app.api.websocket import router as ws_router
+    from app.api.auth import router as auth_router
 
+    app.include_router(auth_router)
     app.include_router(health_router)
     app.include_router(ingest_router)
     app.include_router(threats_router)
