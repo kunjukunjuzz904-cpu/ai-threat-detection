@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_scaler.py
 
 Tests the FeatureScaler: fitting, transform correctness, JSON serialization, and round-trip loading.
