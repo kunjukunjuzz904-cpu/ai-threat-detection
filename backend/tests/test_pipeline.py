@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_pipeline.py
 
 Tests the async ingestion pipeline: parsing, feature extraction, rule scoring, and shutdown.
