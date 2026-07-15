@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_geoip.py
 
 Tests the GeoIP lookup service including private IP handling and missing database fallback.
