@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 validation.py
 """
 
@@ -20,19 +20,17 @@ from sklearn.metrics import (
 from app.core.detection.ensemble import (
     fuse_scores,
     normalize_ae_score,
-    normalize_if_score,
 )
 from app.core.detection.inference import InferenceEngine
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_ENSEMBLE_WEIGHTS: dict[str, float] = {
-    "ae": 0.4,
-    "rf": 0.4,
-    "if": 0.2,
+    "ae": 0.40,
+    "dnn": 0.55,
 }
 
-BINARY_THRESHOLD = 0.5
+BINARY_THRESHOLD = 0.35
 
 
 @dataclass
@@ -60,7 +58,7 @@ def validate_ensemble(
     f1_gate: float = 0.80,
 ) -> ValidationResult:
     """
-    Run all 3 models on test data and compute classification metrics
+    Run the autoencoder and DNN on test data and compute classification metrics
     """
     weights = ensemble_weights or DEFAULT_ENSEMBLE_WEIGHTS
 
@@ -128,9 +126,9 @@ def _compute_fused_scores(
         per_model: dict[str, float] = {}
 
         per_model["ae"] = normalize_ae_score(raw_scores["ae"][i], threshold)
-        per_model["rf"] = raw_scores["rf"][i]
-        per_model["if"] = normalize_if_score(raw_scores["if"][i])
-
+        per_model["dnn"] = raw_scores["dnn"][i]
         fused[i] = fuse_scores(per_model, weights)
 
     return fused
+
+
