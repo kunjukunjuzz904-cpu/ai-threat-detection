@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_validation.py
 """
 
@@ -8,53 +8,40 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from sklearn.ensemble import IsolationForest, RandomForestClassifier
 
 from ml.autoencoder import ThreatAutoencoder
-from ml.export_onnx import (
-    export_autoencoder,
-    export_isolation_forest,
-    export_random_forest,
-)
+from ml.export_onnx import export_autoencoder, export_dnn
 from ml.scaler import FeatureScaler
+from ml.train_dnn import ThreatDNN
 from ml.validation import ValidationResult, validate_ensemble
 
 
 @pytest.fixture
 def trained_model_dir(tmp_path: Path) -> Path:
     """
-    Create a temp directory with trained ONNX models for validation testing
+    Create a temp directory with trained Deep Learning ONNX models.
     """
     rng = np.random.default_rng(42)
     X_normal = rng.standard_normal((200, 35)).astype(np.float32)
-    X_attack = rng.standard_normal((80, 35)).astype(np.float32) + 3.0
-    X = np.vstack([X_normal, X_attack])
-    y = np.array([0] * 200 + [1] * 80, dtype=np.int32)
 
     ae = ThreatAutoencoder(input_dim=35)
     export_autoencoder(ae, tmp_path / "ae.onnx")
 
-    rf = RandomForestClassifier(n_estimators=10, random_state=42)
-    rf.fit(X, y)
-    export_random_forest(rf, 35, tmp_path / "rf.onnx")
-
-    iso = IsolationForest(n_estimators=10, random_state=42)
-    iso.fit(X_normal)
-    export_isolation_forest(iso, 35, tmp_path / "if.onnx")
+    dnn = ThreatDNN(input_dim=35)
+    export_dnn(dnn, tmp_path / "dnn.onnx")
 
     scaler = FeatureScaler()
     scaler.fit(X_normal)
     scaler.save_json(tmp_path / "scaler.json")
 
     (tmp_path / "threshold.json").write_text(json.dumps({"threshold": 0.05}))
-
     return tmp_path
 
 
 @pytest.fixture
 def separable_test_data() -> tuple[np.ndarray, np.ndarray]:
     """
-    Test data where normal and attack clusters are well-separated
+    Test data where normal and attack clusters are well-separated.
     """
     rng = np.random.default_rng(99)
     X_normal = rng.standard_normal((50, 35)).astype(np.float32)
@@ -64,9 +51,9 @@ def separable_test_data() -> tuple[np.ndarray, np.ndarray]:
     return X, y
 
 
-class TestValidateEnsemble:
+class TestValidateDeepEnsemble:
     """
-    Test ensemble validation with metric gates
+    Test ensemble validation with metric gates.
     """
 
     def test_returns_validation_result(
@@ -74,12 +61,8 @@ class TestValidateEnsemble:
         trained_model_dir: Path,
         separable_test_data: tuple[np.ndarray, np.ndarray],
     ) -> None:
-        """
-        validate_ensemble returns a ValidationResult instance
-        """
         X_test, y_test = separable_test_data
         result = validate_ensemble(trained_model_dir, X_test, y_test)
-
         assert isinstance(result, ValidationResult)
 
     def test_result_has_all_metrics(
@@ -87,9 +70,6 @@ class TestValidateEnsemble:
         trained_model_dir: Path,
         separable_test_data: tuple[np.ndarray, np.ndarray],
     ) -> None:
-        """
-        ValidationResult contains precision, recall, f1, pr_auc, roc_auc
-        """
         X_test, y_test = separable_test_data
         result = validate_ensemble(trained_model_dir, X_test, y_test)
 
@@ -104,9 +84,6 @@ class TestValidateEnsemble:
         trained_model_dir: Path,
         separable_test_data: tuple[np.ndarray, np.ndarray],
     ) -> None:
-        """
-        Confusion matrix is 2x2
-        """
         X_test, y_test = separable_test_data
         result = validate_ensemble(trained_model_dir, X_test, y_test)
 
@@ -119,9 +96,6 @@ class TestValidateEnsemble:
         trained_model_dir: Path,
         separable_test_data: tuple[np.ndarray, np.ndarray],
     ) -> None:
-        """
-        gate_details has pr_auc and f1 entries
-        """
         X_test, y_test = separable_test_data
         result = validate_ensemble(trained_model_dir, X_test, y_test)
 
@@ -133,9 +107,6 @@ class TestValidateEnsemble:
         trained_model_dir: Path,
         separable_test_data: tuple[np.ndarray, np.ndarray],
     ) -> None:
-        """
-        passed_gates is True when gates are set very low
-        """
         X_test, y_test = separable_test_data
         result = validate_ensemble(
             trained_model_dir,
@@ -144,7 +115,6 @@ class TestValidateEnsemble:
             pr_auc_gate=0.01,
             f1_gate=0.01,
         )
-
         assert result.passed_gates is True
 
     def test_gates_fail_with_high_thresholds(
@@ -152,9 +122,6 @@ class TestValidateEnsemble:
         trained_model_dir: Path,
         separable_test_data: tuple[np.ndarray, np.ndarray],
     ) -> None:
-        """
-        passed_gates is False when gates are impossibly high
-        """
         X_test, y_test = separable_test_data
         result = validate_ensemble(
             trained_model_dir,
@@ -163,7 +130,6 @@ class TestValidateEnsemble:
             pr_auc_gate=1.0,
             f1_gate=1.0,
         )
-
         assert result.passed_gates is False
 
     def test_custom_ensemble_weights(
@@ -171,19 +137,11 @@ class TestValidateEnsemble:
         trained_model_dir: Path,
         separable_test_data: tuple[np.ndarray, np.ndarray],
     ) -> None:
-        """
-        Custom ensemble weights are accepted without error
-        """
         X_test, y_test = separable_test_data
         result = validate_ensemble(
             trained_model_dir,
             X_test,
             y_test,
-            ensemble_weights={
-                "ae": 0.5,
-                "rf": 0.3,
-                "if": 0.2
-            },
+            ensemble_weights={"ae": 0.5, "dnn": 0.5},
         )
-
         assert isinstance(result, ValidationResult)
