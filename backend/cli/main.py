@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 main.py
 """
 
@@ -11,7 +11,7 @@ import typer
 
 app = typer.Typer(
     name="vigil",
-    help="AngelusVigil — AI-powered threat detection engine",
+    help="ThreatShield AI — AI-powered threat detection engine",
     no_args_is_help=True,
 )
 
@@ -20,14 +20,14 @@ DEFAULT_EPOCHS = 100
 DEFAULT_BATCH_SIZE = 256
 DEFAULT_SYNTHETIC_NORMAL = 1000
 DEFAULT_SYNTHETIC_ATTACK = 500
-DEFAULT_EXPERIMENT_NAME = "angelusvigil-training"
+DEFAULT_EXPERIMENT_NAME = "ThreatShield AI-training"
 DEFAULT_SERVER_URL = "http://localhost:8000"
 
 
 async def _write_metadata(
     model_dir: Path,
     training_samples: int,
-    metrics: dict[str, object],
+    metrics_by_model: dict[str, dict[str, object]],
     mlflow_run_id: str | None,
     threshold: float | None,
 ) -> None:
@@ -57,10 +57,10 @@ async def _write_metadata(
         )
         async with factory() as session:
             await save_model_metadata(
-                session,
+                session=session,
                 model_dir=model_dir,
                 training_samples=training_samples,
-                metrics=metrics,
+                metrics_by_model=metrics_by_model,
                 mlflow_run_id=mlflow_run_id,
                 threshold=threshold,
             )
@@ -76,7 +76,7 @@ def serve(
                                 help="Enable auto-reload for development"),
 ) -> None:
     """
-    Start the AngelusVigil API server
+    Start the ThreatShield AI API server
     """
     import uvicorn
 
@@ -108,7 +108,7 @@ def train(
     ),
     epochs: int = typer.Option(
         DEFAULT_EPOCHS,
-        help="Autoencoder training epochs",
+        help="Deep Learning model training epochs"
     ),
     batch_size: int = typer.Option(
         DEFAULT_BATCH_SIZE,
@@ -120,7 +120,7 @@ def train(
     ),
 ) -> None:
     """
-    Train all ML models and export to ONNX
+    Train Deep Learning model and export to ONNX
     """
     import numpy as np
 
@@ -195,16 +195,18 @@ def train(
         batch_size=batch_size,
     )
     result = orch.run(X, y)
+    print("AE Metrics:", result.ae_metrics)
+    print("DNN Metrics:", result.dnn_metrics)
 
     try:
-        metrics: dict[str, object] = (
-            dataclasses.asdict(result.ensemble_metrics)
-            if result.ensemble_metrics else {}
-        )
+        metrics_by_model = {
+            "autoencoder": result.ae_metrics,
+            "deep_neural_network": result.dnn_metrics,
+        }
         asyncio.run(_write_metadata(
             Path(output_dir),
             int(len(X)),
-            metrics,
+            metrics_by_model,
             result.mlflow_run_id,
             result.ae_metrics.get("ae_threshold"),
         ))
