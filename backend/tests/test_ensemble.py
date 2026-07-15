@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_ensemble.py
 
 Tests ensemble score normalization, weighted fusion, ML/rule blending, and severity classification.
@@ -10,7 +10,6 @@ from app.core.detection.ensemble import (
     classify_severity,
     fuse_scores,
     normalize_ae_score,
-    normalize_if_score,
 )
 
 
@@ -37,27 +36,6 @@ class TestScoreNormalization:
         result = normalize_ae_score(0.0, threshold=0.10)
         assert result == 0.0
 
-    def test_if_score_negative(self) -> None:
-        """
-        Negative IF score (anomalous region) maps above 0.5.
-        """
-        result = normalize_if_score(-0.5)
-        assert abs(result - 0.75) < 1e-6
-
-    def test_if_score_positive(self) -> None:
-        """
-        Positive IF score (normal region) maps below 0.5.
-        """
-        result = normalize_if_score(0.5)
-        assert abs(result - 0.25) < 1e-6
-
-    def test_if_score_zero(self) -> None:
-        """
-        Zero IF score maps to exactly 0.5.
-        """
-        result = normalize_if_score(0.0)
-        assert abs(result - 0.5) < 1e-6
-
 
 class TestEnsembleFusion:
 
@@ -65,35 +43,35 @@ class TestEnsembleFusion:
         """
         Fused score is the weighted average of AE, RF, and IF scores.
         """
-        scores = {"ae": 0.8, "rf": 0.6, "if": 0.5}
-        weights = {"ae": 0.4, "rf": 0.4, "if": 0.2}
+        scores = {"ae": 0.8, "dnn": 0.6}
+        weights = {"ae": 0.45, "dnn": 0.55}
         result = fuse_scores(scores, weights)
-        expected = 0.8 * 0.4 + 0.6 * 0.4 + 0.5 * 0.2
+        expected = 0.8 * 0.45 + 0.6 * 0.55
         assert abs(result - expected) < 1e-6
 
     def test_all_zero_scores(self) -> None:
         """
         All-zero model scores fuse to 0.0.
         """
-        scores = {"ae": 0.0, "rf": 0.0, "if": 0.0}
-        weights = {"ae": 0.4, "rf": 0.4, "if": 0.2}
+        scores = {"ae": 0.0, "dnn": 0.0}
+        weights = {"ae": 0.45, "dnn": 0.55}
         assert fuse_scores(scores, weights) == 0.0
 
     def test_all_max_scores(self) -> None:
         """
         All-one model scores fuse to 1.0.
         """
-        scores = {"ae": 1.0, "rf": 1.0, "if": 1.0}
-        weights = {"ae": 0.4, "rf": 0.4, "if": 0.2}
+        scores = {"ae": 1.0, "dnn": 1.0}
+        weights = {"ae": 0.45, "dnn": 0.55}
         assert abs(fuse_scores(scores, weights) - 1.0) < 1e-6
 
     def test_partial_models(self) -> None:
         """
         Fusion works correctly with only two models present.
         """
-        scores = {"ae": 0.9, "rf": 0.7}
-        weights = {"ae": 0.5, "rf": 0.5}
-        expected = 0.9 * 0.5 + 0.7 * 0.5
+        scores = {"ae": 0.9, "dnn": 0.7}
+        weights = {"ae": 0.45, "dnn": 0.55}
+        expected = 0.9 * 0.45 + 0.7 * 0.55
         assert abs(fuse_scores(scores, weights) - expected) < 1e-6
 
 
