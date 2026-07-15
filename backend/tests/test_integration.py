@@ -1,5 +1,5 @@
 """
-©AngelaMos | 2026
+ThreatShield AI | 2026
 test_integration.py
 
 End-to-end tests covering the full path from log file write through tailer, pipeline, and database storage.
