@@ -102,7 +102,7 @@ wheels = [
 ]
 
 [[package]]
-name = "ThreatShield AI"
+name = "threatshield-ai"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
