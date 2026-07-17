@@ -1,5 +1,5 @@
 #!/bin/sh
-# ©AngelaMos | 2026
+# ThreatShield AI | 2026
 # entrypoint.sh
 
 MODEL_DIR="${MODEL_DIR:-data/models}"
@@ -11,7 +11,7 @@ for f in /var/log/nginx/access.log /var/log/nginx/error.log; do
     fi
 done
 
-REQUIRED_FILES="ae.onnx rf.onnx if.onnx scaler.json threshold.json"
+REQUIRED_FILES="ae.onnx dnn.onnx scaler.json threshold.json"
 
 all_models_exist() {
     for f in $REQUIRED_FILES; do
@@ -23,11 +23,11 @@ all_models_exist() {
 }
 
 if all_models_exist; then
-    echo "Trained models found in $MODEL_DIR — skipping auto-train"
+    echo "Deep Learning models found in $MODEL_DIR — skipping auto-train"
 elif [ "$SKIP_AUTO_TRAIN" = "true" ]; then
     echo "SKIP_AUTO_TRAIN=true — starting in rules-only mode"
 else
-    echo "No ML models found in $MODEL_DIR — training with synthetic data..."
+    echo "No Deep Learning models found in $MODEL_DIR — training with synthetic data..."
     echo "This takes ~1-2 minutes on first run. Models persist to the volume for future starts."
     python -m cli.main train \
         --synthetic-normal 2000 \
@@ -37,7 +37,7 @@ else
         --batch-size 256 2>&1
 
     if [ $? -eq 0 ]; then
-        echo "Training complete — starting in hybrid (rules + ML) mode"
+        echo "Training complete — starting in Deep Learning detection mode"
     else
         echo "WARNING: Training failed — starting in rules-only mode"
     fi
