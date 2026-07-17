@@ -1,5 +1,5 @@
 // ===================
-// © AngelaMos | 2026
+// ThreatShield AI | 2026
 // index.tsx
 // ===================
 
@@ -104,12 +104,10 @@ export function Component(): React.ReactElement {
   const { data: modelStatus } = useModelStatus()
   const { alerts, isConnected, connectionError } = useAlerts()
 
-  console.log(alerts)
   if (statsLoading || !stats) {
     return <div className={styles.loading}>Loading dashboard...</div>
   }
 
-  const { severity_breakdown: sb } = stats
   const high = alerts.filter((a) => a.severity === 'high').length
   const medium = alerts.filter((a) => a.severity === 'medium').length
   const low = alerts.filter((a) => a.severity === 'low').length
@@ -119,10 +117,11 @@ export function Component(): React.ReactElement {
     topIpsMap[alert.source_ip] =
     (topIpsMap[alert.source_ip] || 0) + 1
   })
-  const topIps = Object.entries(topIpsMap).map(([label, count]) => ({
-    label,
-    count,
-  }))
+ const topIps = Object.entries(topIpsMap)
+  .map(([label, count]) => ({ label, count }))
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 5)
+  
   const topPathsMap: Record<string, number> = {}
   alerts.forEach((alert) => {
     topPathsMap[alert.request_path] =
