@@ -1,4 +1,4 @@
-# ©AngelaMos | 2025
+# ThreatShield AI | 2026
 # .stylelintignore
 
 # Dependencies
@@ -18,5 +18,3 @@ out/
 # Generated files
 *.min.css
 
-# Error system styles - ignore from linting
-src/core/app/_toastStyles.scss
