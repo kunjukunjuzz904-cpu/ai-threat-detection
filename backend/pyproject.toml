@@ -2,7 +2,7 @@
 # pyproject.toml
 
 [project]
-name = "ThreatShield AI"
+name = "threatshield-ai"
 version = "0.1.0"
 description = "AI-powered threat detection engine for web server access logs"
 requires-python = ">=3.13"
