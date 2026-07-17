@@ -1,5 +1,5 @@
 // ===================
-// © AngelaMos | 2026
+// ThreatShield AI | 2026
 // shell.tsx
 // ===================
 
@@ -57,7 +57,7 @@ export function Shell(): React.ReactElement {
       >
         <div className={styles.sidebarHeader}>
           <span className={styles.logo}>
-            {sidebarCollapsed ? 'AV' : 'AngelusVigil'}
+            {sidebarCollapsed ? 'TA' : 'ThreatShield AI'}
           </span>
           <button
             type="button"
