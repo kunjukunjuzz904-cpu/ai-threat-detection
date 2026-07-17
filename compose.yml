@@ -1,26 +1,8 @@
-# ©AngelaMos | 2026
+# ThreatShield AI | 2026
 # Production Docker Compose
 
 services:
-  postgres:
-    image: postgres:18-alpine
-    container_name: vigil-postgres
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-angelusvigil}
-      POSTGRES_USER: ${POSTGRES_USER:-vigil}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
-      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - vigil_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vigil} -d ${POSTGRES_DB:-angelusvigil}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    restart: always
+  
 
   redis:
     image: redis:7.4-alpine
@@ -49,7 +31,7 @@ services:
       DEBUG: ${DEBUG:-false}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       API_KEY: ${API_KEY:?API_KEY required}
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-vigil}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-angelusvigil}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ThreatShield AI}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ThreatShield AI}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       NGINX_LOG_PATH: /var/log/nginx/access.log
       GEOIP_DB_PATH: /usr/share/GeoIP/GeoLite2-City.mmdb
@@ -118,8 +100,7 @@ networks:
     name: certgames_default
 
 volumes:
-  postgres_data:
-    name: vigil_postgres_data
+  
   redis_data:
     name: vigil_redis_data
   geoip_data:
