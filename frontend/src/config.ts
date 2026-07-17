@@ -40,7 +40,7 @@ export const QUERY_KEYS = {
 
 export const ROUTES = {
   LOGIN: '/login',
-  DASHBOARD : '/',
+  DASHBOARD: '/',
   THREATS: '/threats',
   MODELS: '/models',
 } as const
