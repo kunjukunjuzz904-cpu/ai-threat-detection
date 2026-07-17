@@ -1,4 +1,4 @@
-// ©AngelaMos | 2025
+// ThreatShield AI | 2026
 // stylelint.config.js
 
 /** @type {import('stylelint').Config} */
@@ -87,14 +87,7 @@ export default {
     'color-function-notation': null,
     'hue-degree-notation': null,
   },
-  ignoreFiles: [
-    'node_modules/**',
-    'dist/**',
-    'build/**',
-    '**/*.js',
-    '**/*.ts',
-    '**/*.tsx',
-  ],
+  
   overrides: [
     {
       files: ['**/styles/_reset.scss', '**/styles/_fonts.scss'],
