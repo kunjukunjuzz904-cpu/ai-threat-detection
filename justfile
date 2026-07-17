@@ -1,6 +1,6 @@
 # =============================================================================
-# AngelaMos | 2026
-# Justfile - AngelusVigil AI Threat Detection
+# ThreatShield AI | 2026
+# Justfile - ThreatShield AI AI Threat Detection
 # =============================================================================
 
 set dotenv-load
@@ -210,7 +210,7 @@ db-current-local:
     cd backend && uv run alembic current
 
 # =============================================================================
-# AngelusVigil CLI
+# ThreatShield AI CLI
 # =============================================================================
 
 [group('vigil')]
