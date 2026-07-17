@@ -34,16 +34,6 @@ data.dropna(inplace=True)
 # Convert Label to numeric
 data["Label"] = data["Label"].apply(lambda x: 0 if str(x).upper() == "BENIGN" else 1)
 
-# Keep only numeric feature columns
-X = data.drop(columns=["Label"]).select_dtypes(include=["number"])
-
-# Convert to float32
-X = X.astype("float32")
-
-y = data["Label"].astype("int32")
-
-X = X.values
-y = y.values
 
 # Train Test Split
 X_train, X_test, y_train, y_test = train_test_split(
