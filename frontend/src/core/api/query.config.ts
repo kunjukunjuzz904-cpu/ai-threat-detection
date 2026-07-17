@@ -1,5 +1,5 @@
 // ===================
-// © AngelaMos | 2026
+// ThreatShield AI | 2026
 // query.config.ts
 // ===================
 
