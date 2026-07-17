@@ -1,5 +1,5 @@
 /**
- * ©AngelaMos | 2026
+ * ThreatShield AI | 2026
  * vite.config.ts
  */
 
@@ -31,7 +31,6 @@ export default defineConfig(({ mode }) => {
 
     server: {
       port: 5173,
-      host: '0.0.0.0',
       proxy: {
         '/api': {
           target: apiTarget,
