@@ -1,5 +1,5 @@
 // ===================
-// © AngelaMos | 2026
+// ThreatShield AI | 2026
 // routers.tsx
 // ===================
 
@@ -8,6 +8,10 @@ import { ROUTES } from '@/config'
 import { Shell } from './shell'
 
 const routes: RouteObject[] = [
+  {
+    path: ROUTES.LOGIN,
+    lazy: () => import('@/pages/login'),
+  },
   {
     element: <Shell />,
     children: [
