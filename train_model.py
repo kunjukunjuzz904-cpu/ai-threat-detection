@@ -15,7 +15,7 @@ from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam
 
 # Load Dataset
-data = pd.read_csv("backend/data/cicids/data.csv")
+data = pd.read_csv("backend/data/cicids2017/data.csv")
 
 # Clean dataset
 data.columns = data.columns.str.strip()
