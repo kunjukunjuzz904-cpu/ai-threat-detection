@@ -1,5 +1,5 @@
 // ===================
-// © AngelaMos | 2026
+// ThreatShield AI | 2026
 // index.tsx
 // ===================
 
@@ -8,11 +8,28 @@ import { useModelStatus, useRetrain } from '@/api/hooks'
 import type { ActiveModel } from '@/api/types'
 import styles from './models.module.scss'
 
+function formatModelType(modelType: string): string {
+  return modelType.replaceAll('_', ' ').toUpperCase()
+}
+
+function formatTextLabel(value: string): string {
+  return value
+    .replaceAll('_', ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
+function formatMetricKey(key: string): string {
+  return key.replaceAll('_', ' ').toUpperCase()
+}
+
 function ModelCard({ model }: { model: ActiveModel }): React.ReactElement {
   return (
     <div className={styles.modelCard}>
       <div className={styles.modelHeader}>
-        <span className={styles.modelType}>{model.model_type}</span>
+        <span className={styles.modelType}>{formatModelType(model.model_type)}</span>
         <span className={styles.modelVersion}>v{model.version}</span>
       </div>
 
@@ -38,7 +55,7 @@ function ModelCard({ model }: { model: ActiveModel }): React.ReactElement {
             .filter(([, val]) => typeof val === 'number')
             .map(([key, val]) => (
               <div key={key} className={styles.metricRow}>
-                <span className={styles.metricKey}>{key}</span>
+                <span className={styles.metricKey}>{formatMetricKey(key)}</span>
                 <span className={styles.metricVal}>
                   {(val as number).toFixed(4)}
                 </span>
@@ -59,6 +76,7 @@ export function Component(): React.ReactElement {
   }
 
   const loaded = status.models_loaded
+  const modeLabel = formatTextLabel(status.detection_mode)
 
   return (
     <div className={styles.page}>
@@ -67,8 +85,8 @@ export function Component(): React.ReactElement {
       >
         <span className={styles.bannerText}>
           {loaded
-            ? `Models Loaded — ${status.detection_mode} mode`
-            : `Models Not Loaded — ${status.detection_mode} mode`}
+            ? `Models Loaded - ${modeLabel} Mode`
+            : `Models Not Loaded - ${modeLabel} Mode`}
         </span>
       </div>
 
