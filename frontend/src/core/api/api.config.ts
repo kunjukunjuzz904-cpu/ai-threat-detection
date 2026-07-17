@@ -1,5 +1,5 @@
 // ===================
-// © AngelaMos | 2026
+// ThreatShield AI | 2026
 // api.config.ts
 // ===================
 
@@ -11,7 +11,7 @@ const getBaseURL = (): string => {
 }
 
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: "http://127.0.0.1:8000",
+  baseURL: getBaseURL(),
   timeout: 15000,
   headers: { "X-API-Key": "dev-key" },
 })
