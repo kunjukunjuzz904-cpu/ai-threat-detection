@@ -7,7 +7,7 @@ version = "0.1.0"
 description = "AI-powered threat detection engine for web server access logs"
 requires-python = ">=3.11"
 authors = [
-    {name = "Carter", email = "carter@certgames.com"}
+    {name = "kunju", email = "kunjukunjuzz904@gmail.com"}
 ]
 
 dependencies = [
@@ -24,6 +24,9 @@ dependencies = [
     "typer>=0.23.0",
     "orjson>=3.11.7",
     "httpx>=0.28.1",
+    "numpy>=2.4.2",
+    "onnxruntime>=1.24.1",
+    "python-jose[cryptography]>=3.5.0",
 ]
 
 [project.optional-dependencies]
@@ -43,10 +46,8 @@ dev = [
 ml = [
     "torch>=2.10.0",
     "scikit-learn>=1.8.0",
-    "onnxruntime>=1.24.1",
     "skl2onnx>=1.20.0",
     "mlflow>=3.9.0",
-    "numpy>=2.4.2",
     "pandas>=2.2.0,<3",
     "imbalanced-learn>=0.14.1",
     "onnxscript>=0.6.2",
