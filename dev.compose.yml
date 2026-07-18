@@ -2,6 +2,24 @@
 # dev.compose.yml
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vigil-postgres-dev
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-threatshield}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-threatshield}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres_dev:/var/lib/postgresql/data
+    networks:
+      - vigil_dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
   
 
   redis:
