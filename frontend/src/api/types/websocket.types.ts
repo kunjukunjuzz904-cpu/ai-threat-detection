@@ -13,7 +13,7 @@ export const WebSocketAlertSchema = z.object({
   request_method: z.string().default('GET'),
   request_path: z.string(),
   threat_score: z.number(),
-  severity: z.string(),
+  severity: z.enum(['HIGH', 'MEDIUM', 'LOW']),
   component_scores: z.record(z.string(), z.number()),
 })
 
