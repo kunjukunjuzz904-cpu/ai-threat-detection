@@ -5,7 +5,7 @@
 
 import { useState } from 'react'
 import { useAlerts } from '@/api/hooks'
-import type { ThreatEvent } from '@/api/types'
+import type { ThreatEvent, WebSocketAlert } from '@/api/types'
 import { MethodBadge, SeverityBadge, ThreatDetail } from '@/components'
 import { PAGINATION } from '@/config'
 import styles from './threats.module.scss'
@@ -38,12 +38,12 @@ export function Component(): React.ReactElement {
     : -1
   const handleNext = () => {
     if (selectedIndex < filteredItems.length - 1) {
-      setSelectedThreat(filteredItems[selectedIndex + 1] as ThreatEvent)
+      setSelectedThreat(alertToThreatEvent(filteredItems[selectedIndex + 1]))
     }
   }
   const handlePrevious = () => {
     if (selectedIndex > 0) {
-      setSelectedThreat(filteredItems[selectedIndex - 1] as ThreatEvent)
+      setSelectedThreat(alertToThreatEvent(filteredItems[selectedIndex - 1]))
     }
   }
 
@@ -74,8 +74,7 @@ const isLoading = false
           onChange={(e) => {
             setSeverity(e.target.value as SeverityFilter)
             setOffset(0)
-          }}
-        >
+          }}>
           <option value="ALL">All Severities</option>
           <option value="HIGH">High</option>
           <option value="MEDIUM">Medium</option>
@@ -90,7 +89,8 @@ const isLoading = false
           onChange={(e) => {
             setSourceIp(e.target.value)
             setOffset(0)
-          }}
+          }
+        }
         />
       </div>
 
@@ -125,7 +125,7 @@ const isLoading = false
                 <tr
                   key={threat.id}
                   className={styles.row}
-                  onClick={() => setSelectedThreat(threat as ThreatEvent)}
+                  onClick={() => setSelectedThreat(alertToThreatEvent(threat))}
                 >
                   <td className={styles.timeCell}>
                     {formatTime(threat.timestamp)}
