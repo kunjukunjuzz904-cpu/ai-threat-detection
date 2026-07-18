@@ -108,9 +108,9 @@ export function Component(): React.ReactElement {
     return <div className={styles.loading}>Loading dashboard...</div>
   }
 
-  const high = alerts.filter((a) => a.severity === 'high').length
-  const medium = alerts.filter((a) => a.severity === 'medium').length
-  const low = alerts.filter((a) => a.severity === 'low').length
+  const high = alerts.filter((a) => a.severity === 'HIGH').length
+  const medium = alerts.filter((a) => a.severity === 'MEDIUM').length
+  const low = alerts.filter((a) => a.severity === 'LOW').length
   const totalThreats = alerts.length
   const topIpsMap: Record<string, number> = {}
   alerts.forEach((alert) => {
