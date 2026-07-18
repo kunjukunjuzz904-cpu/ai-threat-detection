@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     batch_timeout_ms: int = 50
 
     model_dir: str = "data/models"
-    detection_mode: str = "deep_learning"
+    detection_mode: str = "rules"
     ensemble_weight_ae: float = 0.40
     ensemble_weight_dnn: float = 0.55
     ae_threshold_percentile: float = 99.5
