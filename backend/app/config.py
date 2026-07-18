@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     api_key: str = ""
+    secret_key: str = "threatshield-secret-key-change-me"
+    algorithm: str = "HS256"
     log_level: str = "INFO"
 
     database_url: str = f"sqlite+aiosqlite:///{(BACKEND_DIR / 'angelusvigil.db').as_posix()}"
