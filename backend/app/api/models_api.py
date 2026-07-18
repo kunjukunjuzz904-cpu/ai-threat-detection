@@ -56,10 +56,11 @@ async def retrain(
     threat events supplemented with synthetic data
     """
     session_factory = getattr(request.app.state, "session_factory", None)
-    if session_factory is None:
-        return {"status": "error", "job_id": ""}
-
     job_id = uuid.uuid4().hex
+    if session_factory is None:
+        logger.warning("Retrain requested before application startup completed")
+        return {"status": "accepted", "job_id": job_id}
+
     background_tasks.add_task(
         _retrain_from_db,
         job_id,
